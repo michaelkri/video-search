@@ -17,4 +17,6 @@ frames_processor.add_frames_to_collection()
 
 results = frames_collection.query(SEARCH_QUERY)
 
-print(results)
+results_frames = [frames_processor.deserialize_frame(frame) for frame in results['documents']]
+
+print(results_frames)

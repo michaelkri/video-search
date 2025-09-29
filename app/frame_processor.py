@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import base64
 from vector_database import Collection
 
 
@@ -9,11 +10,21 @@ class FrameProcessor:
         self.frames_collection = frames_collection
 
 
-    def serialize(self, frame_array: np.ndarray) -> str:
+    def serialize_frame(self, frame_array: np.ndarray) -> str:
         '''
         Convert a NumPy array to a base64 string so it can be saved in the collection
         '''
-        return 'a'
+        serialized_frame = base64.b64encode(frame_array)
+        return serialized_frame.decode()
+    
+
+    def deserialize_frame(self, serialized_frame: str):
+        '''
+        Convert a serialized frame to the NumPy array it represents
+        '''
+        serialized_frame_bytes = serialized_frame.encode()
+        decoded_frame = base64.b64decode(serialized_frame_bytes)
+        return decoded_frame
 
     
     def add_frames_to_collection(self, frame_interval: int = 30, batch_size: int = 64):
@@ -44,7 +55,7 @@ class FrameProcessor:
                 embedded_frames = self.frames_collection.embed(frames)
 
                 # Serialize frames so they can be saved in the collection
-                serialized_frames = [self.serialize(frame) for frame in frames]
+                serialized_frames = [self.serialize_frame(frame) for frame in frames]
 
                 # Add embedded frames to Chroma collection
                 self.frames_collection.add(
