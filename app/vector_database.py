@@ -25,14 +25,14 @@ class Collection:
         return self.embedding_function(input)
 
     
-    def add(self, ids, embeddings, documents):
+    def add(self, ids, embeddings, metadatas):
         '''
         Adds to the collection
         '''
         self.frames_collection.add(
             ids=ids,
             embeddings=embeddings,
-            documents=documents
+            metadatas=metadatas
         )
     
 
@@ -40,10 +40,10 @@ class Collection:
         '''
         Query the collection
         '''
-        embedded_search_query = self.embedding_function(search_query)
+        embedded_search_query = self.embedding_function([search_query])
 
         frames = self.frames_collection.query(
             query_embeddings=embedded_search_query,
-            include=['distances', 'documents']
+            include=['distances', 'metadatas']
         )
         return frames

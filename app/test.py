@@ -1,4 +1,5 @@
 import chromadb
+from PIL import Image
 from vector_database import Collection
 from frame_processor import FrameProcessor
 
@@ -17,6 +18,8 @@ frames_processor.add_frames_to_collection()
 
 results = frames_collection.query(SEARCH_QUERY)
 
-results_frames = [frames_processor.deserialize_frame(frame) for frame in results['documents']]
+results_image_paths = [metadata['image_path'] for metadata in results['metadatas'][0]]
 
-print(results_frames)
+results_images = [Image.open(path) for path in results_image_paths[:3]]
+
+print(results_images)

@@ -1,9 +1,26 @@
-from vector_database import VectorDatabase
+import chromadb
+from vector_database import Collection
+from frame_processor import FrameProcessor
 import gradio as gr
 
 
 def main():
-    db = VectorDatabase()
+    # Create a Chroma collection to hold frames
+    client = chromadb.Client()
+    frames_collection = Collection(client, 'frames')
+
+
+    def search_frames(video_path, search_query):
+        frames_processor = FrameProcessor(frames_collection, video_path=video_path)
+        
+        frames_processor.add_frames_to_collection()
+        
+        results = frames_collection.query(search_query=search_query)
+
+        results_image_paths = [metadata['image_path'] for metadata in results['metadatas'][0]]
+
+        return results_image_paths[:3]
+
 
     with gr.Blocks(theme=gr.themes.Citrus()) as demo:
         gr.Markdown("# Video Search")
@@ -20,7 +37,7 @@ def main():
         )
 
         search_button.click(
-            fn=db.search,
+            fn=search_frames,
             inputs=[video_input, search_query_input],
             outputs=output_gallery
         )
