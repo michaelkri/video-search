@@ -1,33 +1,31 @@
 import cv2
-import numpy as np
 from vector_database import Collection
 import os
 
 
 class FrameProcessor:
-    # Directory to save frames to
-    FRAMES_DIR = 'frames'
-
-
-    def __init__(self, frames_collection: Collection, video_path: str, save_path: str = 'frames'):
-        self.video_path = video_path
+    def __init__(self, frames_collection: Collection, save_path: str = 'frames'):
+        self.processed_videos = set()
         self.frames_collection = frames_collection
         self.save_path = save_path
 
-
-    def __del__(self):
-        os.rmdir(self.save_path)
-
     
-    def add_frames_to_collection(self, frame_interval: int = 30, batch_size: int = 64):
+    def add_frames_to_collection(self, video_path: str, frame_interval: int = 30, batch_size: int = 64) -> None:
         '''
         Adds the video to the frame collection in batches
         '''
+        video_name = os.path.basename(video_path)
+
+        # Already saved video frames
+        if video_path in self.processed_videos:
+            print(f'Video {video_path} already processed')
+            return
+
         # Open video file
-        cap = cv2.VideoCapture(self.video_path)
+        cap = cv2.VideoCapture(video_path)
 
         # Create directory for frames
-        os.makedirs(FrameProcessor.FRAMES_DIR, exist_ok=True)
+        os.makedirs(self.save_path, exist_ok=True)
         
         # Store embeddings in batches
         i = 0
@@ -43,12 +41,12 @@ class FrameProcessor:
                 
                 # Failed to read frame
                 if not ret:
-                    return
+                    break
                 
                 # Frame to be included in database
                 if i % frame_interval == 0:
                     # Save frame to disk
-                    frame_path = os.path.join(FrameProcessor.FRAMES_DIR, f'frame_{i}.jpg')
+                    frame_path = os.path.join(self.save_path, f'{video_name}_frame_{i}.jpg')
                     cv2.imwrite(frame_path, frame)
 
                     # Set Chroma entry information
@@ -72,10 +70,12 @@ class FrameProcessor:
                 )
 
                 print(f'Added batch {batch_end_frame // (frame_interval * batch_size)}')
-
-            # End of video
-            if not cap.isOpened():
+            else:
                 break
 
         cap.release()
         cv2.destroyAllWindows()
+
+        # Mark video as processed
+        self.processed_videos.add(video_path)
+        print(f'Added {video_path} to processed list')
