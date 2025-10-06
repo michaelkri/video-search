@@ -35,26 +35,21 @@ def main():
         with gr.Blocks(theme=gr.themes.Citrus()) as app:
             gr.Markdown("# Video Search")
 
-            # Create components
-            video_input = gr.Video(label="Video", height=300, width=300)
-            text_input = gr.Textbox(label="Search Query")
-            search_button = gr.Button("Search")
-            output_gallery = gr.Gallery(
-                label="Results",
-                object_fit="cover",
-                columns=4,
-                rows=2
-            )
-
             with gr.Row():
                 with gr.Column(scale=1):
-                    video_input
-                with gr.Column(scale=2):
-                    text_input
-                    search_button
+                    # Group all inputs in the first column
+                    video_input = gr.Video(label="Upload Video")
+                    text_input = gr.Textbox(label="Search Query")
+                    search_button = gr.Button("Search", variant="primary")
 
-            with gr.Row():
-                output_gallery
+                with gr.Column(scale=2):
+                    # The second column is dedicated to the output
+                    output_gallery = gr.Gallery(
+                        label="Search Results",
+                        object_fit="contain",
+                        height="auto",
+                        columns=4
+                    )
 
             search_button.click(
                 fn=search_frames,
