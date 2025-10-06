@@ -5,6 +5,7 @@
 
 ## Architecture
 <!-- Diagram -->
+<img src="assets/diagram.svg" />
 
 ### Storage
 1. A video can be uploaded in one of two ways:
