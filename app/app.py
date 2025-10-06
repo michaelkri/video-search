@@ -2,12 +2,21 @@ import chromadb
 import gradio as gr
 import os
 import shutil
+import re
+from yt_dlp import YoutubeDL
 from vector_database import Collection
 from frame_processor import FrameProcessor
 
 
 # Folder to store frames in
 FRAMES_FOLDER = 'frames'
+
+VIDEO_FOLDER = 'videos'
+
+ydl_options = {
+    'outtmpl': os.path.join(VIDEO_FOLDER, '%(id)s.%(ext)s'),
+    'noplaylist': True
+}
 
 
 def main():
@@ -22,7 +31,6 @@ def main():
     frames_processor = FrameProcessor(frames_collection)
     
     def search_frames(video_path, search_query):
-        
         frames_processor.add_frames_to_collection(video_path=video_path)
         
         results = frames_collection.query(search_query=search_query)
@@ -31,19 +39,37 @@ def main():
 
         return results_image_paths[:3]
 
+
+    def process_and_search(upload, url, query):
+        if upload:
+            video_path = upload
+        else:
+            # Download video from YouTube
+            video_url = url.strip()
+            with YoutubeDL(ydl_options) as ydl:
+                info = ydl.extract_info(video_url, download=True)
+                video_filename = f"{info['id']}.{info['ext']}"
+                video_path = os.path.join(VIDEO_FOLDER, video_filename)
+
+        return search_frames(video_path, query)
+
+
     try:
         with gr.Blocks(theme=gr.themes.Citrus()) as app:
             gr.Markdown("# Video Search")
 
             with gr.Row():
                 with gr.Column(scale=1):
-                    # Group all inputs in the first column
-                    video_input = gr.Video(label="Upload Video")
+                    with gr.Tabs():
+                        with gr.Tab("Upload Video"):
+                            video_upload_input = gr.Video(label="Upload your video file")
+                        with gr.Tab("Video URL"):
+                            video_url_input = gr.Textbox(label="Enter YouTube video URL", placeholder="https://www.youtube.com/watch?v=...")
+
                     text_input = gr.Textbox(label="Search Query")
                     search_button = gr.Button("Search", variant="primary")
 
                 with gr.Column(scale=2):
-                    # The second column is dedicated to the output
                     output_gallery = gr.Gallery(
                         label="Search Results",
                         object_fit="contain",
@@ -52,8 +78,8 @@ def main():
                     )
 
             search_button.click(
-                fn=search_frames,
-                inputs=[video_input, text_input],
+                fn=process_and_search,
+                inputs=[video_upload_input, video_url_input, text_input],
                 outputs=output_gallery
             )
 

@@ -4,3 +4,4 @@ numpy
 open_clip_torch
 pillow
 opencv-python
+yt-dlp
