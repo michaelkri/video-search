@@ -2,57 +2,52 @@ import chromadb
 import gradio as gr
 import os
 import shutil
-import re
+import uuid
 from yt_dlp import YoutubeDL
 from vector_database import Collection
 from frame_processor import FrameProcessor
 
 
-# Folder to store frames in
 FRAMES_FOLDER = 'frames'
-
-VIDEO_FOLDER = 'videos'
-
-ydl_options = {
-    'outtmpl': os.path.join(VIDEO_FOLDER, '%(id)s.%(ext)s'),
-    'noplaylist': True
-}
+VIDEOS_FOLDER = 'videos'
 
 
 def main():
+    os.makedirs(FRAMES_FOLDER, exist_ok=True)
+    os.makedirs(VIDEOS_FOLDER, exist_ok=True)
+
     # Create a Chroma collection to hold frames
     client = chromadb.Client()
     frames_collection = Collection(client, 'frames')
+    frames_processor = FrameProcessor(frames_collection, save_path=FRAMES_FOLDER)
 
-    # Create a directory to save video frames
-    os.makedirs(FRAMES_FOLDER, exist_ok=True)
 
-    # Used to process video frames
-    frames_processor = FrameProcessor(frames_collection)
-    
     def search_frames(video_path, search_query):
         frames_processor.add_frames_to_collection(video_path=video_path)
-        
         results = frames_collection.query(search_query=search_query)
-
         results_image_paths = [metadata['image_path'] for metadata in results['metadatas'][0]]
-
         return results_image_paths[:3]
 
 
     def process_and_search(upload, url, query):
         if upload:
-            video_path = upload
+            # Copy uploaded file
+            video_path = os.path.join(VIDEOS_FOLDER, os.path.basename(upload))
+            shutil.copy(upload, video_path)
         else:
             # Download video from YouTube
+            ydl_options = {
+                'outtmpl': os.path.join(VIDEOS_FOLDER, '%(id)s.%(ext)s'),
+                'noplaylist': True
+            }
             video_url = url.strip()
             with YoutubeDL(ydl_options) as ydl:
                 info = ydl.extract_info(video_url, download=True)
                 video_filename = f"{info['id']}.{info['ext']}"
-                video_path = os.path.join(VIDEO_FOLDER, video_filename)
+                video_path = os.path.join(VIDEOS_FOLDER, video_filename)
 
         return search_frames(video_path, query)
-
+        
 
     try:
         with gr.Blocks(theme=gr.themes.Citrus()) as app:
